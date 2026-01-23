@@ -137,7 +137,6 @@ export function PricingSection() {
                   size="lg"
                   className="w-full"
                   onClick={() => handleCtaClick(plan.name)}
-                  disabled={isLoading}
                 >
                   {plan.cta}
                 </Button>
