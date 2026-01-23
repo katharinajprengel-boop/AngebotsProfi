@@ -33,8 +33,18 @@ export function Header() {
     return () => subscription.unsubscribe();
   }, []);
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+    try {
+      const { error } = await supabase.auth.signOut({ scope: "global" });
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setUserEmail(null);
+      navigate("/auth", { replace: true });
+      window.location.reload();
+    }
   };
   return <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
       <div className="container flex items-center justify-between h-16 md:h-20">
