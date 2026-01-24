@@ -21,6 +21,8 @@ serve(async (req) => {
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    const priceId = Deno.env.get("STRIPE_PRICE_ID");
+    if (!priceId) throw new Error("STRIPE_PRICE_ID is not set");
     logStep("Stripe key verified");
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
@@ -52,7 +54,7 @@ serve(async (req) => {
       customer_email: customerId ? undefined : customerEmail,
       line_items: [
         {
-          price: "price_1Spbn6J689Lqx2jlcksZEJMW",
+          price: priceId,
           quantity: 1,
         },
       ],

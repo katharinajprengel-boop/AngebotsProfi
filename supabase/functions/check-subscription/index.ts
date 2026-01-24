@@ -24,8 +24,8 @@ serve(async (req) => {
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
     logStep("Stripe key verified");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl = Deno.env.get("SB_URL");
+    const supabaseServiceKey = Deno.env.get("SB_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error("Supabase environment variables not set");
     }
