@@ -453,7 +453,59 @@ Ihr Handwerksbetrieb`;
       const margin = 48;
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
+      const maxWidth = pageWidth - margin * 2;
+      const lineHeight = 14;
       let y = margin;
+      const details = gewerkDetails[formData.gewerk] || gewerkDetails["Sonstiges"];
+
+      const ensureSpace = (height: number) => {
+        if (y + height > pageHeight - margin) {
+          doc.addPage();
+          y = margin;
+        }
+      };
+
+      const addSectionTitle = (title: string) => {
+        ensureSpace(28);
+        doc.setFillColor(245, 246, 248);
+        doc.rect(margin, y - 14, maxWidth, 22, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(33, 37, 41);
+        doc.text(title, margin + 8, y + 2);
+        y += 26;
+      };
+
+      const addWrappedText = (text: string, fontSize = 11, spacing = lineHeight) => {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(fontSize);
+        doc.setTextColor(33, 37, 41);
+        const lines = doc.splitTextToSize(text, maxWidth);
+        lines.forEach((line: string) => {
+          ensureSpace(spacing);
+          doc.text(line, margin, y);
+          y += spacing;
+        });
+      };
+
+      const addBulletList = (items: string[]) => {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        doc.setTextColor(33, 37, 41);
+        const indent = 14;
+        items.filter(Boolean).forEach((item) => {
+          const lines = doc.splitTextToSize(item, maxWidth - indent);
+          lines.forEach((line: string, index: number) => {
+            ensureSpace(lineHeight);
+            if (index === 0) {
+              doc.text(`• ${line}`, margin, y);
+            } else {
+              doc.text(line, margin + indent, y);
+            }
+            y += lineHeight;
+          });
+        });
+      };
 
       if (companyLogoUrl) {
         const imageType = getImageTypeFromDataUrl(companyLogoUrl);
@@ -463,39 +515,94 @@ Ihr Handwerksbetrieb`;
           const imgWidth = Math.min(maxWidth, props.width);
           const imgHeight = props.height * (imgWidth / props.width);
           doc.addImage(companyLogoUrl, imageType, margin, y, imgWidth, imgHeight);
-          y += imgHeight + 16;
+          y += imgHeight + 12;
         }
       }
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(18);
-      doc.text("Angebot", margin, y);
-      y += 24;
+      doc.setFontSize(20);
+      doc.setTextColor(19, 34, 68);
+      doc.text("Angebot", pageWidth - margin, y, { align: "right" });
+      y += 18;
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
+      doc.setTextColor(33, 37, 41);
       const dateString = new Date().toLocaleDateString("de-DE");
-      doc.text(`Datum: ${dateString}`, margin, y);
-      y += 18;
+      const offerNumber = `AN-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`;
+      doc.text(`Datum: ${dateString}`, pageWidth - margin, y, { align: "right" });
+      y += 16;
+      doc.text(`Angebotsnr.: ${offerNumber}`, pageWidth - margin, y, { align: "right" });
+      y += 20;
 
       if (formData.firmenname) {
+        doc.setFont("helvetica", "bold");
         doc.text(formData.firmenname, margin, y);
-        y += 18;
+        y += 16;
+      }
+
+      const kundenAnrede = formData.kundenname
+        ? `Kunde: ${formData.kundenname}`
+        : "Kunde: –";
+      doc.setFont("helvetica", "normal");
+      doc.text(kundenAnrede, margin, y);
+      y += 20;
+
+      addSectionTitle(`Leistungsumfang · ${formData.gewerk || "Leistung"}`);
+      const leistungItems = formData.leistung
+        .split("\n")
+        .map((item) => item.trim())
+        .filter(Boolean);
+      addBulletList(leistungItems);
+
+      if (formData.besonderheiten) {
+        y += 6;
+        addWrappedText(`Besonderheiten: ${formData.besonderheiten}`);
       }
 
       y += 6;
+      addSectionTitle("Ihre Vorteile");
+      addBulletList(details.nutzen);
 
-      const lines = doc.splitTextToSize(generatedQuote, pageWidth - margin * 2);
-      const lineHeight = 14;
+      y += 6;
+      addSectionTitle("Ausführung");
+      addWrappedText(
+        `Geplante Dauer: ${formData.dauer || "—"}\nDen genauen Termin stimmen wir nach Auftragserteilung gemeinsam ab.`,
+      );
 
-      lines.forEach((line: string) => {
-        if (y > pageHeight - margin) {
-          doc.addPage();
-          y = margin;
-        }
-        doc.text(line, margin, y);
-        y += lineHeight;
-      });
+      y += 6;
+      addSectionTitle("Investition");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.text(`Gesamtpreis: ${formData.preis || "—"} € (inkl. MwSt.)`, margin, y);
+      y += 18;
+      addWrappedText(
+        "Dies ist ein verbindlicher Festpreis. Zusätzliche Kosten entstehen nur nach vorheriger Absprache.",
+      );
+
+      y += 6;
+      addSectionTitle("Zahlungsweise");
+      addBulletList([
+        "50% Anzahlung bei Auftragserteilung",
+        "50% nach Abnahme der fertigen Arbeit",
+        "Zahlungsziel: 14 Tage nach Rechnungsstellung",
+      ]);
+
+      y += 6;
+      addSectionTitle("Gewährleistung");
+      addWrappedText(details.gewaehrleistung);
+
+      y += 6;
+      addSectionTitle("Warum wir der richtige Partner sind");
+      addBulletList(details.warumWir);
+
+      y += 6;
+      addSectionTitle("Abschluss");
+      addWrappedText(details.abschluss);
+      y += 6;
+      addWrappedText(
+        "Dieses Angebot ist 14 Tage gültig. Bei Fragen melden Sie sich gerne.\n\nMit freundlichen Grüßen\nIhr Handwerksbetrieb",
+      );
 
       doc.save(`angebot-${Date.now()}.pdf`);
     } catch (err) {
