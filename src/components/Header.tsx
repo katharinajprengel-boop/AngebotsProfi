@@ -33,6 +33,7 @@ export function Header() {
     return () => subscription.unsubscribe();
   }, []);
   const handleLogout = async () => {
+    setMobileMenuOpen(false);
     try {
       const { error } = await supabase.auth.signOut({ scope: "global" });
       if (error) {
@@ -42,8 +43,8 @@ export function Header() {
       console.error("Logout failed:", error);
     } finally {
       setUserEmail(null);
-      navigate("/auth", { replace: true });
-      window.location.reload();
+      // Force a full reload so stale auth state cannot stick around.
+      window.location.href = "/auth";
     }
   };
   return <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
